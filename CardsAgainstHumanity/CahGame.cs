@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using TShockAPI;
 
 namespace CardsAgainstHumanity
@@ -47,8 +48,19 @@ namespace CardsAgainstHumanity
 			if (end)
 			{
 				TSPlayer winner = Utils.GetCahPlayers()[0];
-				Utils.CahBroadcast($"{winner.Name} has won the game with {winner.GetCahPlayer().Score} points!");
-				TSPlayer.All.SendInfoMessage($"{winner.Name} won Cards Against Humanity with {winner.GetCahPlayer().Score} points!");
+				List<TSPlayer> Winners = Utils.GetCahPlayers().FindAll(c => c.GetCahPlayer().Score == winner.GetCahPlayer().Score);
+
+				if (Winners.Count > 1)
+				{
+					string winstr = string.Join(", ", Winners.Select(c => c.Name));
+					Utils.CahBroadcast($"{winstr} tied with {winner.GetCahPlayer().Score} points in Cards Against Humanity!");
+					TSPlayer.All.SendInfoMessage($"{winstr} tied with {winner.GetCahPlayer().Score} points in Cards Against Humanity!");
+				}
+				else
+				{
+					Utils.CahBroadcast($"{winner.Name} won the game with {winner.GetCahPlayer().Score} points!");
+					TSPlayer.All.SendInfoMessage($"{winner.Name} won Cards Against Humanity with {winner.GetCahPlayer().Score} points!");
+				}
 				TSPlayer.All.SendInfoMessage("Type \"/cah join\" to join in for the next game!");
 			}
 			Utils.GetCahPlayers().ForEach((c) => { c.ClearInterfaceAndKick(); });
