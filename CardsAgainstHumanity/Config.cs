@@ -12,10 +12,16 @@ namespace CardsAgainstHumanity
 	public class Config
 	{
 		public static string SavePath => Path.Combine(TShock.SavePath, "CardsAgainstHumanity.json");
+
+		public int MaxRounds;
+		public int MaxPlayers;
 		public string[] Questions;
 
 		public Config()
 		{
+			MaxRounds = 15;
+			MaxPlayers = 7;
+
 			Questions = new string[]
 				{
 					"Instead of coal, Santa now gives the bad children ______.",

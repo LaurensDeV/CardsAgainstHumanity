@@ -10,24 +10,27 @@ namespace CardsAgainstHumanity
 		public int Round { get; set; }
 		public string Question { get; private set; }
 		public int TimeLeft { get; private set; }
-		public string Winner { get; private set; }
+		public TSPlayer Winner { get; private set; }
 		public TSPlayer Judge { get; private set; }
 		public bool Locked { get; set; }
-		public int MaxRounds => 10;
-		public int MaxPlayers => 7;
+		public int MaxRounds { get; private set; }
+		public int MaxPlayers { get; private set; }
+		private List<string> Questions { get; set; }
 		private int TimeVar = 0;
 		public Random rnd;
 
-		public CahGame()
+		public CahGame(Config config)
 		{
+			MaxRounds = config.MaxRounds;
+			MaxPlayers = config.MaxPlayers;
+			Questions = new List<string>(config.Questions);
 			rnd = new Random();
 			Round = 0;
-			Winner = string.Empty;
 		}
 
 		public void GetNewQuestion()
 		{
-			Question = CaHMain.config.Questions[rnd.Next(0, CaHMain.config.Questions.Length)];
+			Question = Questions.FindAll(c => c != Question)[rnd.Next(0, CaHMain.config.Questions.Length - 1)];
 		}
 
 		public void Start()
@@ -79,7 +82,6 @@ namespace CardsAgainstHumanity
 				{
 					Utils.CahBroadcast("Time is up!");
 					TimeVar = 0;
-					SetJudge();
 					gameState = GameState.WaitingForVote;
 				}
 				TimeLeft--;
@@ -121,7 +123,7 @@ namespace CardsAgainstHumanity
 
 		public void SetJudge()
 		{
-			List<TSPlayer> cahPlayers = Utils.GetCahPlayers();
+			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != Judge && !c.GetCahPlayer().Spectating);
 			Judge = cahPlayers[rnd.Next(0, cahPlayers.Count)];
 		}
 
@@ -136,8 +138,9 @@ namespace CardsAgainstHumanity
 			Round++;
 			GetNewQuestion();
 			TimeLeft = 40;
-			Winner = string.Empty;
+			Winner = null;
 			gameState = GameState.WaitingForAnswers;
+			SetJudge();
 			Utils.CahBroadcast($"Round {Round} has started!");
 		}
 
@@ -145,7 +148,7 @@ namespace CardsAgainstHumanity
 		{
 			ts.GetCahPlayer().Score++;
 			gameState = GameState.VoteCast;
-			Winner = ts.Name;
+			Winner = ts;
 		}
 	}
 

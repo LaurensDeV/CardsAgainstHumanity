@@ -9,6 +9,7 @@ using System.Timers;
 using Terraria;
 using TerrariaApi.Server;
 using TShockAPI;
+using TShockAPI.Hooks;
 
 namespace CardsAgainstHumanity
 {
@@ -34,12 +35,23 @@ namespace CardsAgainstHumanity
 				config.Save();
 			}
 			else config = Config.Load();
-
-
-
 			Commands.ChatCommands.Add(new Command("cah.play", Cah, "cah"));
-			CahGame = new CahGame();
+			ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
+			CahGame = new CahGame(config);
 			timer.Elapsed += Timer_Elapsed;
+		}
+
+		void OnLeave(LeaveEventArgs e)
+		{
+			if (TShock.Players[e.Who] == null)
+				return;
+			if (CahGame.Judge == TShock.Players[e.Who])
+			{
+				TShock.Players[e.Who].RemoveData("cah");
+				CahGame.SetJudge();
+			}
+			else
+				TShock.Players[e.Who].RemoveData("cah");
 		}
 
 		void Cah(CommandArgs args)
@@ -49,6 +61,7 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("You need to be logged in to use this command!");
 				return;
 			}
+			CahPlayer cplr = args.Player.GetCahPlayer();
 			CommandArgs newArgs = null;
 			if (args.Parameters.Count > 0)
 				newArgs = new CommandArgs(args.Message, args.Player, args.Parameters.GetRange(1, args.Parameters.Count - 1));
@@ -69,9 +82,19 @@ namespace CardsAgainstHumanity
 					LeaveCommand(newArgs);
 					break;
 				case "answer":
+					if (cplr != null && cplr.Spectating)
+					{
+						args.Player.SendErrorMessage("You are in spectate mode and cannot use this command!");
+						return;
+					}
 					AnswerCommand(newArgs);
 					break;
 				case "win":
+					if (cplr != null && cplr.Spectating)
+					{
+						args.Player.SendErrorMessage("You are in spectate mode and cannot use this command!");
+						return;
+					}
 					WinCommand(newArgs);
 					break;
 				case "stop":
@@ -90,15 +113,42 @@ namespace CardsAgainstHumanity
 					}
 					LockCommand(newArgs);
 					break;
+				case "spectate":
+					SpectateCommand(newArgs);
+					break;
 				default:
 					args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /cah <subcommand>");
 					args.Player.SendInfoMessage("/cah join - join a cah game");
 					args.Player.SendInfoMessage("/cah leave - leave a cah game");
 					args.Player.SendInfoMessage("/cah answer <answer> give your answer for the current round");
 					args.Player.SendInfoMessage("/cah win <player> choose which player wins the round");
-					args.Player.SendInfoMessage("/cah lock - toggle the ability to join the game.");
+					args.Player.SendInfoMessage("/cah spectate - spectate the current game.");
+					if (args.Player.HasPermission("cah.admin"))
+					{
+						args.Player.SendInfoMessage("/cah start - start the game.");
+						args.Player.SendInfoMessage("/cah lock - toggle the ability to join the game.");
+						args.Player.SendInfoMessage("/cah stop - Stop the game.");
+					}
 					return;
 			}
+		}
+
+		public void SpectateCommand(CommandArgs args)
+		{
+			CahPlayer cahPlayer = args.Player.GetCahPlayer();
+			if (cahPlayer != null)
+			{
+				if (cahPlayer.Spectating)
+				{
+					args.Player.SendErrorMessage("You are already spectating!");
+					return;
+				}
+				args.Player.Spectate(CahGame);
+				Utils.CahBroadcast($"{args.Player.Name} switched to spectate mode!");
+				return;
+			}
+			args.Player.SetData("cah", new CahPlayer(true));
+			args.Player.SendInfoMessage("You are now spectating Cards against Humanity!");
 		}
 
 		public void LockCommand(CommandArgs args)
@@ -126,6 +176,12 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("The game is already running!");
 				return;
 			}
+			if (Utils.GetCahPlayers().Count(c => !c.GetCahPlayer().Spectating) < 3)
+			{
+				args.Player.SendErrorMessage("There need to be atleast 3 players to start Cards against Humanity!");
+				return;
+			}
+			args.Player.SendInfoMessage("You have started Cards Against Humanity!");
 			CahGame.Start();
 		}
 
@@ -142,9 +198,9 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("The game is locked and you cannot join!");
 				return;
 			}
-			if (Utils.GetCahPlayers().Count >= CahGame.MaxPlayers)
+			if (Utils.GetCahPlayers().Count(c => !c.GetCahPlayer().Spectating) >= CahGame.MaxPlayers)
 			{
-				args.Player.SendErrorMessage("The game is already full!");
+				args.Player.SendErrorMessage("The game is already full! If you want to spectate type /cah spectate.");
 				return;
 			}
 			args.Player.SetData("cah", new CahPlayer());
@@ -189,6 +245,11 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("The game is not waiting for answers at this moment!");
 				return;
 			}
+			if (CahGame.Judge == args.Player)
+			{
+				args.Player.SendErrorMessage("You are the judge and cannot give in answer for this round!");
+				return;
+			}
 			if (cahPlayer.Answered)
 			{
 				args.Player.SendErrorMessage("You have already given an answer for this round!");
@@ -228,7 +289,7 @@ namespace CardsAgainstHumanity
 				return;
 			}
 			var plr = players[0];
-			if (!Utils.GetCahPlayers().Any(c => c == plr))
+			if (!Utils.GetCahPlayers().Where(c=> !c.GetCahPlayer().Spectating && plr != CahGame.Judge).Any(c => c == plr))
 			{
 				args.Player.SendErrorMessage("This player is not in the current game!");
 				return;

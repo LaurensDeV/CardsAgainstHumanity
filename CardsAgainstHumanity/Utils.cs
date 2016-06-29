@@ -24,7 +24,7 @@ namespace CardsAgainstHumanity
 
 		public static string SplitStringToFitScreen(string msg)
 		{
-			if (msg.Length < 48)
+			if (msg.Length < 50)
 				return msg;
 
 			StringBuilder sb = new StringBuilder();
@@ -33,7 +33,7 @@ namespace CardsAgainstHumanity
 			int len = 0;
 			for (int i = 0; i < split.Length; i++)
 			{
-				if (len + split[i].Length >= 48)
+				if (len + split[i].Length >= 50)
 				{
 					sb.Append("\r\n");
 					len = 0;
@@ -46,6 +46,16 @@ namespace CardsAgainstHumanity
 
 		public static void SendCaHGameInterface(this TSPlayer ts, CahGame cahGame)
 		{
+			string Optionalmsg = "";
+			CahPlayer cplr = ts.GetCahPlayer();
+
+			if (cahGame.Judge == ts)
+				Optionalmsg = "You are the judge and cannot submit an answer for this round.";
+			if (cplr.Spectating)
+				Optionalmsg = "You are currently spectating and can't do anything.";
+			else if (!cplr.Answered)
+				Optionalmsg = "Use /cah answer <answer>";
+
 			string message = string.Join("\r\n",
 			new string[]
 			{
@@ -58,9 +68,9 @@ namespace CardsAgainstHumanity
 				Utils.LineSegment,
 				"Given answers:",
 				Utils.LineSegment,
-				GetAnswers(),
+				GetAnswers(cahGame.Judge),
 				Utils.LineSegment,
-				(ts.GetCahPlayer().Answered ? "" : "Use /cah answer <answer>"),
+				SplitStringToFitScreen(Optionalmsg),
 				RepeatLineBreaks(50),
 			});
 			ts.SendData(PacketTypes.Status, message);
@@ -117,7 +127,9 @@ namespace CardsAgainstHumanity
 				Utils.LineSegment,
 				$"Waiting for the judge ({cahGame.Judge.Name}) to vote",
 				Utils.LineSegment,
-				$"Winner of this round: {cahGame.Winner}",
+				$"Winner of this round: {cahGame.Winner?.Name ??  ""}",
+				SplitStringToFitScreen($"Question: {cahGame.Question}"),
+				SplitStringToFitScreen($"Chosen answer: {cahGame.Winner?.GetCahPlayer()?.Answer ?? ""}"),
 				Utils.LineSegment,
 				RepeatLineBreaks(50)
 			});
@@ -137,7 +149,7 @@ namespace CardsAgainstHumanity
 				SplitStringToFitScreen("Type /cah win <player> to choose a winner for this round."),
 				$"Players to choose from:",
 				Utils.LineSegment,
-				GetAnswers(),
+				GetAnswers(cahGame.Judge),
 				Utils.LineSegment,
 				RepeatLineBreaks(50)
 			});
@@ -147,7 +159,7 @@ namespace CardsAgainstHumanity
 		public static string GetUsernames()
 		{
 			StringBuilder sb = new StringBuilder();
-			List<TSPlayer> cahPlayers = GetCahPlayers();
+			List<TSPlayer> cahPlayers = GetCahPlayers().FindAll(c => !c.GetCahPlayer().Spectating);
 			for (int i = 0; i < cahPlayers.Count; i++)
 			{
 				sb.Append($"{cahPlayers[i].Name}");
@@ -160,7 +172,7 @@ namespace CardsAgainstHumanity
 		public static string GetScores()
 		{
 			StringBuilder sb = new StringBuilder();
-			List<TSPlayer> cahPlayers = GetCahPlayers();
+			List<TSPlayer> cahPlayers = GetCahPlayers().FindAll(c => !c.GetCahPlayer().Spectating);
 			for (int i = 0; i < cahPlayers.Count; i++)
 			{
 				sb.Append($"{cahPlayers[i].Name}: {cahPlayers[i].GetCahPlayer().Score}");
@@ -170,10 +182,10 @@ namespace CardsAgainstHumanity
 			return sb.ToString();
 		}
 
-		public static string GetAnswers()
+		public static string GetAnswers(TSPlayer judge)
 		{
 			StringBuilder sb = new StringBuilder();
-			List<TSPlayer> cahPlayers = GetCahPlayers();
+			List<TSPlayer> cahPlayers = GetCahPlayers().FindAll(c => c != judge && !c.GetCahPlayer().Spectating);
 			for (int i = 0; i < cahPlayers.Count; i++)
 			{
 				sb.Append(SplitStringToFitScreen($"{cahPlayers[i].Name}: {cahPlayers[i].GetCahPlayer().Answer}"));
@@ -199,6 +211,13 @@ namespace CardsAgainstHumanity
 		{
 			ts.SendData(PacketTypes.Status, string.Empty);
 			ts.RemoveData("cah");
+		}
+
+		public static void Spectate(this TSPlayer ts, CahGame cahGame)
+		{
+			ts.GetCahPlayer().Spectating = true;
+			if (cahGame.Judge == ts)
+				cahGame.SetJudge();
 		}
 	}
 }
