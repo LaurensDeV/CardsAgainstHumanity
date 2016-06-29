@@ -53,7 +53,7 @@ namespace CardsAgainstHumanity
 				RepeatLineBreaks(10),
 				"Cards against humanity",
 				Utils.LineSegment,
-				$"Round {cahGame.Round} ({cahGame.TimeLeft} seconds left to answer)",
+				$"Round {cahGame.Round}/{cahGame.MaxRounds} - ({cahGame.TimeLeft} seconds left to answer)",
 				Utils.SplitStringToFitScreen("Question: " + cahGame.Question),
 				Utils.LineSegment,
 				"Given answers:",
@@ -185,7 +185,7 @@ namespace CardsAgainstHumanity
 
 		public static CahPlayer GetCahPlayer(this TSPlayer ts) => ts.GetData<CahPlayer>("cah");
 
-		public static List<TSPlayer> GetCahPlayers() => TShock.Players.Where(t => t != null && t.IsLoggedIn && t.GetCahPlayer() != null).OrderBy(c => c.GetCahPlayer().Score).ToList();
+		public static List<TSPlayer> GetCahPlayers() => TShock.Players.Where(t => t != null && t.IsLoggedIn && t.GetCahPlayer() != null).OrderBy(c => -c.GetCahPlayer().Score).ToList();
 
 		public static void CahBroadcast(string msg)
 		{

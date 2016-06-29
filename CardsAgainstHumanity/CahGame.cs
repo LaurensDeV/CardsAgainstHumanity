@@ -12,6 +12,9 @@ namespace CardsAgainstHumanity
 		public int TimeLeft { get; private set; }
 		public string Winner { get; private set; }
 		public TSPlayer Judge { get; private set; }
+		public bool Locked { get; set; }
+		public int MaxRounds => 10;
+		public int MaxPlayers => 7;
 		private int TimeVar = 0;
 		public Random rnd;
 
@@ -34,9 +37,17 @@ namespace CardsAgainstHumanity
 			TimeVar = 0;
 		}
 
-		public void Stop()
+		public void Stop(bool end = false)
 		{
 			gameState = GameState.NotStarted;
+			Round = 0;
+			if (end)
+			{
+				TSPlayer winner = Utils.GetCahPlayers()[0];
+				Utils.CahBroadcast($"{winner.Name} has won the game with {winner.GetCahPlayer().Score} points!");
+				TSPlayer.All.SendInfoMessage($"{winner.Name} won Cards Against Humanity with {winner.GetCahPlayer().Score} points!");
+				TSPlayer.All.SendInfoMessage("Type \"/cah join\" to join in for the next game!");
+			}
 			Utils.GetCahPlayers().ForEach((c) => { c.ClearInterfaceAndKick(); });
 		}
 
@@ -52,8 +63,6 @@ namespace CardsAgainstHumanity
 				{
 					if (TimeVar >= 10)
 					{
-						Utils.CahBroadcast("Round 1 has started!");
-						gameState = GameState.WaitingForAnswers;
 						NextRound();
 					}
 					TimeVar++;
@@ -91,7 +100,7 @@ namespace CardsAgainstHumanity
 					if (TimeVar >= 5)
 					{
 						gameState = GameState.ScoreOverview;
-						TimeVar = 0;					
+						TimeVar = 0;
 					}
 					TimeVar++;
 				}
@@ -104,7 +113,6 @@ namespace CardsAgainstHumanity
 				});
 				if (TimeVar >= 10)
 				{
-					Utils.CahBroadcast("The next round has started!");
 					NextRound();
 				}
 				TimeVar++;
@@ -119,12 +127,18 @@ namespace CardsAgainstHumanity
 
 		public void NextRound()
 		{
+			if (Round >= MaxRounds)
+			{
+				Stop(true);
+				return;
+			}
 			Utils.GetCahPlayers().ForEach((c) => { c.GetCahPlayer().Reset(); });
 			Round++;
 			GetNewQuestion();
 			TimeLeft = 40;
 			Winner = string.Empty;
 			gameState = GameState.WaitingForAnswers;
+			Utils.CahBroadcast($"Round {Round} has started!");
 		}
 
 		public void Win(TSPlayer ts)

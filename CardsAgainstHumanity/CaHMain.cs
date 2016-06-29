@@ -37,7 +37,7 @@ namespace CardsAgainstHumanity
 
 
 
-			Commands.ChatCommands.Add(new Command("cah", Cah, "cah"));
+			Commands.ChatCommands.Add(new Command("cah.play", Cah, "cah"));
 			CahGame = new CahGame();
 			timer.Elapsed += Timer_Elapsed;
 		}
@@ -55,6 +55,11 @@ namespace CardsAgainstHumanity
 			switch (args.Parameters.Count == 0 ? "help" : args.Parameters[0].ToLower())
 			{
 				case "start":
+					if (!args.Player.HasPermission("cah.admin"))
+					{
+						args.Player.SendErrorMessage("You do not have permission to use this command!");
+						return;
+					}
 					StartCommand(newArgs);
 					break;
 				case "join":
@@ -70,7 +75,20 @@ namespace CardsAgainstHumanity
 					WinCommand(newArgs);
 					break;
 				case "stop":
+					if (!args.Player.HasPermission("cah.admin"))
+					{
+						args.Player.SendErrorMessage("You do not have permission to use this command!");
+						return;
+					}
 					StopCommand(newArgs);
+					break;
+				case "lock":
+					if (!args.Player.HasPermission("cah.admin"))
+					{
+						args.Player.SendErrorMessage("You do not have permission to use this command!");
+						return;
+					}
+					LockCommand(newArgs);
 					break;
 				default:
 					args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /cah <subcommand>");
@@ -78,8 +96,15 @@ namespace CardsAgainstHumanity
 					args.Player.SendInfoMessage("/cah leave - leave a cah game");
 					args.Player.SendInfoMessage("/cah answer <answer> give your answer for the current round");
 					args.Player.SendInfoMessage("/cah win <player> choose which player wins the round");
+					args.Player.SendInfoMessage("/cah lock - toggle the ability to join the game.");
 					return;
 			}
+		}
+
+		public void LockCommand(CommandArgs args)
+		{
+			CahGame.Locked = !CahGame.Locked;
+			args.Player.SendInfoMessage("The game is now {0}locked", CahGame.Locked ? "" : "un");
 		}
 
 		public void StopCommand(CommandArgs args)
@@ -96,27 +121,28 @@ namespace CardsAgainstHumanity
 
 		public void StartCommand(CommandArgs args)
 		{
-			if (CahGame.gameState == GameState.NotStarted)
+			if (CahGame.gameState != GameState.NotStarted)
 			{
-				CahGame.Start();
+				args.Player.SendErrorMessage("The game is already running!");
+				return;
 			}
+			CahGame.Start();
 		}
 
 		public void JoinCommand(CommandArgs args)
 		{
 			CahPlayer cahPlayer = args.Player.GetCahPlayer();
-
 			if (cahPlayer != null)
 			{
 				args.Player.SendErrorMessage("You are already in the game!");
 				return;
 			}
-			if (CahGame.gameState != GameState.NotStarted)
+			if (CahGame.Locked)
 			{
-				args.Player.SendErrorMessage("The game is already running! Please wait for the next game.");
+				args.Player.SendErrorMessage("The game is locked and you cannot join!");
 				return;
 			}
-			if (Utils.GetCahPlayers().Count > 5)
+			if (Utils.GetCahPlayers().Count >= CahGame.MaxPlayers)
 			{
 				args.Player.SendErrorMessage("The game is already full!");
 				return;
@@ -184,7 +210,11 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("It is not the time to vote!");
 				return;
 			}
-			//check if is judge
+			if (args.Player != CahGame.Judge)
+			{
+				args.Player.SendErrorMessage("You are not the judge!");
+				return;
+			}
 			string plStr = String.Join(" ", args.Parameters);
 			var players = TShock.Utils.FindPlayer(plStr);
 			if (players.Count == 0)
