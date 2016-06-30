@@ -147,7 +147,7 @@ namespace CardsAgainstHumanity
 				"Cards against humanity",
 				Utils.LineSegment,
 				$"You are the judge!",
-				SplitStringToFitScreen("Type /cah win <player> to choose a winner for this round."),
+				SplitStringToFitScreen("Type /cah win <number> to choose a winner for this round."),
 				SplitStringToFitScreen($"Question: {cahGame.Question}"),
 				$"Players to choose from:",
 				Utils.LineSegment,
