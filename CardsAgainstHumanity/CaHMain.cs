@@ -171,7 +171,7 @@ namespace CardsAgainstHumanity
 
 		public void StartCommand(CommandArgs args)
 		{
-			if (CahGame.gameState != GameState.NotStarted || CahGame.gameState != GameState.AutoStarting)
+			if (CahGame.gameState != GameState.NotStarted && CahGame.gameState != GameState.AutoStarting)
 			{
 				args.Player.SendErrorMessage("The game is already running!");
 				return;
@@ -261,7 +261,7 @@ namespace CardsAgainstHumanity
 
 		public void WinCommand(CommandArgs args)
 		{
-			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != CahGame.Judge && !c.GetCaHPlayer().Spectating);
+			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != CahGame.Judge && !c.GetCaHPlayer().Spectating).OrderBy(c => (c.Name)).ToList();
 			if (args.Parameters.Count < 1)
 			{
 				args.Player.SendErrorMessage($"Invalid syntax! Proper syntax: /cah win <1 - {cahPlayers.Count}>");
@@ -283,7 +283,7 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /cah win <number>");
 				return;
 			}
-			if (num < 1 || num > cahPlayers.Count - 1)
+			if (num < 1 || num > cahPlayers.Count)
 			{
 				args.Player.SendErrorMessage($"Invalid syntax! Proper syntax: /cah win <1 - {cahPlayers.Count}>");
 				return;
