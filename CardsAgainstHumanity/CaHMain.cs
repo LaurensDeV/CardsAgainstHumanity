@@ -61,7 +61,7 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("You need to be logged in to use this command!");
 				return;
 			}
-			CahPlayer cplr = args.Player.GetCahPlayer();
+			CahPlayer cplr = args.Player.GetCaHPlayer();
 			CommandArgs newArgs = null;
 			if (args.Parameters.Count > 0)
 				newArgs = new CommandArgs(args.Message, args.Player, args.Parameters.GetRange(1, args.Parameters.Count - 1));
@@ -121,7 +121,7 @@ namespace CardsAgainstHumanity
 					args.Player.SendInfoMessage("/cah join - join a cah game");
 					args.Player.SendInfoMessage("/cah leave - leave a cah game");
 					args.Player.SendInfoMessage("/cah answer <answer> give your answer for the current round");
-					args.Player.SendInfoMessage("/cah win <player> choose which player wins the round");
+					args.Player.SendInfoMessage("/cah win <number> choose which answer wins the round");
 					args.Player.SendInfoMessage("/cah spectate - spectate the current game.");
 					if (args.Player.HasPermission("cah.admin"))
 					{
@@ -135,7 +135,7 @@ namespace CardsAgainstHumanity
 
 		public void SpectateCommand(CommandArgs args)
 		{
-			CahPlayer cahPlayer = args.Player.GetCahPlayer();
+			CahPlayer cahPlayer = args.Player.GetCaHPlayer();
 			if (cahPlayer != null)
 			{
 				if (cahPlayer.Spectating)
@@ -171,12 +171,12 @@ namespace CardsAgainstHumanity
 
 		public void StartCommand(CommandArgs args)
 		{
-			if (CahGame.gameState != GameState.NotStarted)
+			if (CahGame.gameState != GameState.NotStarted || CahGame.gameState != GameState.AutoStarting)
 			{
 				args.Player.SendErrorMessage("The game is already running!");
 				return;
 			}
-			if (Utils.GetCahPlayers().Count(c => !c.GetCahPlayer().Spectating) < 3)
+			if (Utils.GetCahPlayers().Count(c => !c.GetCaHPlayer().Spectating) < 3)
 			{
 				args.Player.SendErrorMessage("There need to be atleast 3 players to start Cards against Humanity!");
 				return;
@@ -187,7 +187,7 @@ namespace CardsAgainstHumanity
 
 		public void JoinCommand(CommandArgs args)
 		{
-			CahPlayer cahPlayer = args.Player.GetCahPlayer();
+			CahPlayer cahPlayer = args.Player.GetCaHPlayer();
 			if (cahPlayer != null)
 			{
 				args.Player.SendErrorMessage("You are already in the game!");
@@ -198,7 +198,7 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("The game is locked and you cannot join!");
 				return;
 			}
-			if (Utils.GetCahPlayers().Count(c => !c.GetCahPlayer().Spectating) >= CahGame.MaxPlayers)
+			if (Utils.GetCahPlayers().Count(c => !c.GetCaHPlayer().Spectating) >= CahGame.MaxPlayers)
 			{
 				args.Player.SendErrorMessage("The game is already full! If you want to spectate type /cah spectate.");
 				return;
@@ -209,7 +209,7 @@ namespace CardsAgainstHumanity
 
 		public void LeaveCommand(CommandArgs args)
 		{
-			CahPlayer cahPlayer = args.Player.GetCahPlayer();
+			CahPlayer cahPlayer = args.Player.GetCaHPlayer();
 			if (cahPlayer == null)
 			{
 				args.Player.SendErrorMessage("You are not in the game!");
@@ -234,7 +234,7 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("Invalid syntax! proper syntax: /cah answer <answer>");
 				return;
 			}
-			CahPlayer cahPlayer = args.Player.GetCahPlayer();
+			CahPlayer cahPlayer = args.Player.GetCaHPlayer();
 			if (cahPlayer == null)
 			{
 				args.Player.SendErrorMessage("You are not participating in the current game!");
@@ -261,9 +261,10 @@ namespace CardsAgainstHumanity
 
 		public void WinCommand(CommandArgs args)
 		{
+			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != CahGame.Judge && !c.GetCaHPlayer().Spectating);
 			if (args.Parameters.Count < 1)
 			{
-				args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /cah win <player>");
+				args.Player.SendErrorMessage($"Invalid syntax! Proper syntax: /cah win <1 - {cahPlayers.Count}>");
 				return;
 			}
 			if (CahGame.gameState != GameState.WaitingForVote)
@@ -276,24 +277,18 @@ namespace CardsAgainstHumanity
 				args.Player.SendErrorMessage("You are not the judge!");
 				return;
 			}
-			string plStr = String.Join(" ", args.Parameters);
-			var players = TShock.Utils.FindPlayer(plStr);
-			if (players.Count == 0)
+			int num;
+			if (!int.TryParse(args.Parameters[0], out num))
 			{
-				args.Player.SendErrorMessage("Invalid player!");
+				args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /cah win <number>");
 				return;
 			}
-			if (players.Count > 1)
+			if (num < 1 || num > cahPlayers.Count - 1)
 			{
-				TShock.Utils.SendMultipleMatchError(args.Player, players.Select(p => p.Name));
+				args.Player.SendErrorMessage($"Invalid syntax! Proper syntax: /cah win <1 - {cahPlayers.Count}>");
 				return;
 			}
-			var plr = players[0];
-			if (!Utils.GetCahPlayers().Where(c=> !c.GetCahPlayer().Spectating && plr != CahGame.Judge).Any(c => c == plr))
-			{
-				args.Player.SendErrorMessage("This player is not in the current game!");
-				return;
-			}
+			var plr = cahPlayers[num - 1];
 			args.Player.SendInfoMessage($"You have selected {plr.Name} as winner for this round!");
 			Utils.CahBroadcast($"{plr.Name} has been selected as winner for this round!");
 			CahGame.Win(plr);
@@ -302,6 +297,13 @@ namespace CardsAgainstHumanity
 		private void Timer_Elapsed(object sender, ElapsedEventArgs e)
 		{
 			CahGame.RunGame(e.SignalTime.Second);
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
+			timer.Elapsed -= Timer_Elapsed;
+			base.Dispose(disposing);
 		}
 
 		public CaHMain(Main game) : base(game)

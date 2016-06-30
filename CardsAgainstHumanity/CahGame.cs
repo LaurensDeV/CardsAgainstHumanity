@@ -16,14 +16,17 @@ namespace CardsAgainstHumanity
 		public bool Locked { get; set; }
 		public int MaxRounds { get; private set; }
 		public int MaxPlayers { get; private set; }
+		public bool AutoStart { get; private set; }
 		private List<string> Questions { get; set; }
 		private int TimeVar = 0;
 		public Random rnd;
 
 		public CahGame(Config config)
 		{
+			TimeVar = 50;
 			MaxRounds = config.MaxRounds;
 			MaxPlayers = config.MaxPlayers;
+			AutoStart = config.AutoStart;
 			Questions = new List<string>(config.Questions);
 			rnd = new Random();
 			Round = 0;
@@ -48,33 +51,56 @@ namespace CardsAgainstHumanity
 			if (end)
 			{
 				TSPlayer winner = Utils.GetCahPlayers()[0];
-				List<TSPlayer> Winners = Utils.GetCahPlayers().FindAll(c => c.GetCahPlayer().Score == winner.GetCahPlayer().Score);
+				List<TSPlayer> Winners = Utils.GetCahPlayers().FindAll(c => c.GetCaHPlayer().Score == winner.GetCaHPlayer().Score);
 
 				if (Winners.Count > 1)
 				{
 					string winstr = string.Join(", ", Winners.Select(c => c.Name));
-					Utils.CahBroadcast($"{winstr} tied with {winner.GetCahPlayer().Score} points in Cards Against Humanity!");
-					TSPlayer.All.SendInfoMessage($"{winstr} tied with {winner.GetCahPlayer().Score} points in Cards Against Humanity!");
+					Utils.CahBroadcast($"{winstr} tied with {winner.GetCaHPlayer().Score} points in Cards Against Humanity!");
+					TSPlayer.All.SendInfoMessage($"{winstr} tied with {winner.GetCaHPlayer().Score} points in Cards Against Humanity!");
 				}
 				else
 				{
-					Utils.CahBroadcast($"{winner.Name} won the game with {winner.GetCahPlayer().Score} points!");
-					TSPlayer.All.SendInfoMessage($"{winner.Name} won Cards Against Humanity with {winner.GetCahPlayer().Score} points!");
+					Utils.CahBroadcast($"{winner.Name} won the game with {winner.GetCaHPlayer().Score} points!");
+					TSPlayer.All.SendInfoMessage($"{winner.Name} won Cards Against Humanity with {winner.GetCaHPlayer().Score} points!");
 				}
 				TSPlayer.All.SendInfoMessage("Type \"/cah join\" to join in for the next game!");
 			}
 			Utils.GetCahPlayers().ForEach((c) => { c.ClearInterfaceAndKick(); });
+			Locked = false;
+			TimeVar = 50;
 		}
 
 		public void RunGame(int second)
 		{
-			if (gameState == GameState.NotStarted || gameState == GameState.Started)
+			if (gameState == GameState.NotStarted || gameState == GameState.Started || gameState == GameState.AutoStarting)
 			{
 				Utils.GetCahPlayers().ForEach((c) =>
 				{
-					c.SendCahLobbyInterface(this);
+					c.SendCaHLobbyInterface(this);
 				});
-				if (gameState == GameState.Started)
+				if (gameState == GameState.NotStarted)
+				{
+					if (Utils.GetCahPlayers().Count(c => !c.GetCaHPlayer().Spectating) >= 3)
+						gameState = GameState.AutoStarting;
+				}
+				else if (gameState == GameState.AutoStarting)
+				{
+					if (Utils.GetCahPlayers().Count(c => !c.GetCaHPlayer().Spectating) < 3)
+					{
+						gameState = GameState.NotStarted;
+						Utils.CahBroadcast("Not enough players! Autostart has been cancelled.");
+						TimeVar = 50;
+					}
+					if (second % 15 == 0)
+						Utils.CahBroadcast($"Cards against Humanity will automatically start in {10 + TimeVar} seconds!");
+					if (second % 25 == 0)
+						TSPlayer.All.SendInfoMessage("Cards against humanity will begin soon, type /cah join to play!");
+					TimeVar--;
+					if (TimeVar <= 0)
+						gameState = GameState.Started;
+				}
+				else if (gameState == GameState.Started)
 				{
 					if (TimeVar >= 10)
 					{
@@ -104,14 +130,14 @@ namespace CardsAgainstHumanity
 				{
 					if (gameState == GameState.WaitingForVote && c == Judge)
 					{
-						c.SendCahJudgeInterface(this);
+						c.SendCaHJudgeInterface(this);
 					}
 					else
-						c.SendCahVoteInterface(this);
+						c.SendCaHVoteInterface(this);
 				});
 				if (gameState == GameState.VoteCast)
 				{
-					if (TimeVar >= 5)
+					if (TimeVar >= 10)
 					{
 						gameState = GameState.ScoreOverview;
 						TimeVar = 0;
@@ -135,7 +161,7 @@ namespace CardsAgainstHumanity
 
 		public void SetJudge()
 		{
-			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != Judge && !c.GetCahPlayer().Spectating);
+			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != Judge && !c.GetCaHPlayer().Spectating);
 			Judge = cahPlayers[rnd.Next(0, cahPlayers.Count)];
 		}
 
@@ -146,7 +172,7 @@ namespace CardsAgainstHumanity
 				Stop(true);
 				return;
 			}
-			Utils.GetCahPlayers().ForEach((c) => { c.GetCahPlayer().Reset(); });
+			Utils.GetCahPlayers().ForEach((c) => { c.GetCaHPlayer().Reset(); });
 			Round++;
 			GetNewQuestion();
 			TimeLeft = 40;
@@ -158,7 +184,7 @@ namespace CardsAgainstHumanity
 
 		public void Win(TSPlayer ts)
 		{
-			ts.GetCahPlayer().Score++;
+			ts.GetCaHPlayer().Score++;
 			gameState = GameState.VoteCast;
 			Winner = ts;
 		}
@@ -167,6 +193,7 @@ namespace CardsAgainstHumanity
 	public enum GameState
 	{
 		NotStarted,
+		AutoStarting,
 		Started,
 		WaitingForAnswers,
 		WaitingForVote,
