@@ -120,7 +120,7 @@ namespace CardsAgainstHumanity
 					args.Player.SendInfoMessage("~Cards against Humanity commands~");
 					args.Player.SendInfoMessage("/cah join - join a cah game");
 					args.Player.SendInfoMessage("/cah leave - leave a cah game");
-					args.Player.SendInfoMessage("/cah answer <answer> give your answer for the current round");
+					args.Player.SendInfoMessage("/cah answer <answer> - give your answer for the current round");
 					args.Player.SendInfoMessage("/cah win <number> - choose which answer wins the round");
 					args.Player.SendInfoMessage("/cah spectate - spectate the current game.");
 					if (args.Player.HasPermission("cah.admin"))
