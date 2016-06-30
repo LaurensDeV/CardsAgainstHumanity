@@ -121,7 +121,7 @@ namespace CardsAgainstHumanity
 					args.Player.SendInfoMessage("/cah join - join a cah game");
 					args.Player.SendInfoMessage("/cah leave - leave a cah game");
 					args.Player.SendInfoMessage("/cah answer <answer> give your answer for the current round");
-					args.Player.SendInfoMessage("/cah win <number> choose which answer wins the round");
+					args.Player.SendInfoMessage("/cah win <number> - choose which answer wins the round");
 					args.Player.SendInfoMessage("/cah spectate - spectate the current game.");
 					if (args.Player.HasPermission("cah.admin"))
 					{
@@ -188,7 +188,7 @@ namespace CardsAgainstHumanity
 		public void JoinCommand(CommandArgs args)
 		{
 			CahPlayer cahPlayer = args.Player.GetCaHPlayer();
-			if (cahPlayer != null)
+			if (cahPlayer != null && !cahPlayer.Spectating)
 			{
 				args.Player.SendErrorMessage("You are already in the game!");
 				return;
@@ -217,8 +217,11 @@ namespace CardsAgainstHumanity
 			}
 			args.Player.ClearInterfaceAndKick();
 			args.Player.SendInfoMessage("You have left the game!");
+			if (cahPlayer.Spectating)
+				return;
+			
 			Utils.CahBroadcast($"{args.Player.Name} has left the game!");
-			if (Utils.GetCahPlayers().Count == 0)
+			if (Utils.GetCahPlayers().FindAll(c=> !c.GetCaHPlayer().Spectating).Count == 0)
 				CahGame.Stop();
 		}
 

@@ -24,7 +24,7 @@ namespace CardsAgainstHumanity
 
 		public static string SplitStringToFitScreen(string msg)
 		{
-			if (msg.Length < 50)
+			if (msg.Length < 48)
 				return msg;
 
 			StringBuilder sb = new StringBuilder();
@@ -33,7 +33,7 @@ namespace CardsAgainstHumanity
 			int len = 0;
 			for (int i = 0; i < split.Length; i++)
 			{
-				if (len + split[i].Length >= 50)
+				if (len + split[i].Length >= 48)
 				{
 					sb.Append("\r\n");
 					len = 0;
@@ -125,7 +125,7 @@ namespace CardsAgainstHumanity
 				RepeatSpaces(100),
 				RepeatLineBreaks(10),
 				"Cards against humanity",
-				cahGame.Winner == null ? Utils.LineSegment : "",
+				Utils.LineSegment,
 				cahGame.Winner == null ? $"Waiting for the judge ({cahGame.Judge.Name}) to vote" : "",
 				Utils.LineSegment,
 				$"Winner of this round: {cahGame.Winner?.Name ??  ""}",
