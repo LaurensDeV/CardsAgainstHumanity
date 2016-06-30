@@ -104,7 +104,7 @@ namespace CardsAgainstHumanity
 				"Cards against humanity",
 				Utils.LineSegment,
 				$"Waiting for players to join",
-				$"",
+				Utils.LineSegment,
 				"Current players:",
 				Utils.LineSegment,
 				GetUsernames(),
