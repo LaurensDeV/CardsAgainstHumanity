@@ -117,7 +117,7 @@ namespace CardsAgainstHumanity
 					SpectateCommand(newArgs);
 					break;
 				default:
-					args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /cah <subcommand>");
+					args.Player.SendInfoMessage("~Cards against Humanity commands~");
 					args.Player.SendInfoMessage("/cah join - join a cah game");
 					args.Player.SendInfoMessage("/cah leave - leave a cah game");
 					args.Player.SendInfoMessage("/cah answer <answer> give your answer for the current round");
