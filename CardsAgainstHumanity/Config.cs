@@ -1972,7 +1972,7 @@ namespace CardsAgainstHumanity
 				"Sorry Mario, but _____ is in another castle.",
 				"_____ is a lie.",
 				"In Kingdom Hearts, Donald Duck will be replaced with _____ .",
-				"we must embrace _____ and burn it as fuel for out journey.",
+				"we must embrace _____ and burn it as fuel for our journey.",
 				"Because of the lastest school shooting, _____ is being blamed for making kids too violent.",
 				">walk into gamestop >see _____ >walk out",
 				"WHAT THE FUCK DID YOU SAY ABOUT ME YOU _____?",
