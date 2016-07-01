@@ -71,11 +71,23 @@ namespace CardsAgainstHumanity
 			TimeVar = 50;
 		}
 
+		public void Leave(TSPlayer ts)
+		{
+			Utils.CahBroadcast($"{ts.Name} has left the game!");
+			if (Utils.GetCahPlayers().FindAll(c => !c.GetCaHPlayer().Spectating).Count <= 2)
+			{
+				Utils.CahBroadcast("The game has ended due to a lack of players.");
+				Stop();
+			}
+			else if (ts == Judge)
+				SetJudge();
+		}
+
 		public void RunGame(int second)
 		{
 			if (gameState == GameState.NotStarted || gameState == GameState.Started || gameState == GameState.AutoStarting)
 			{
-				Utils.GetCahPlayers().ForEach((c) =>
+				Utils.GetCahPlayers().ForEach(c =>
 				{
 					c.SendCaHLobbyInterface(this);
 				});

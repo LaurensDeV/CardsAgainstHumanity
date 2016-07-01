@@ -53,16 +53,9 @@ namespace CardsAgainstHumanity
 			if (cplr == null)
 				return;
 
-			if (CahGame.Judge == ts)
-			{
-				ts.RemoveData("cah");
-				CahGame.SetJudge();
-			}
-			else
-				ts.RemoveData("cah");
-			Utils.CahBroadcast($"{ts.Name} has left the game!");
-			if (Utils.GetCahPlayers().FindAll(c => !c.GetCaHPlayer().Spectating).Count == 0)
-				CahGame.Stop();
+			ts.RemoveData("cah");
+
+			CahGame.Leave(ts);
 		}
 
 		void Cah(CommandArgs args)
@@ -230,10 +223,8 @@ namespace CardsAgainstHumanity
 			args.Player.SendInfoMessage("You have left the game!");
 			if (cahPlayer.Spectating)
 				return;
-			
-			Utils.CahBroadcast($"{args.Player.Name} has left the game!");
-			if (Utils.GetCahPlayers().FindAll(c=> !c.GetCaHPlayer().Spectating).Count == 0)
-				CahGame.Stop();
+
+			CahGame.Leave(args.Player);
 		}
 
 		public void AnswerCommand(CommandArgs args)
