@@ -189,7 +189,7 @@ namespace CardsAgainstHumanity
 			StringBuilder sb = new StringBuilder();
 			List<TSPlayer> cahPlayers = GetCahPlayers().FindAll(c => c != judge && !c.GetCaHPlayer().Spectating);
 			if (Anonymous)
-				cahPlayers = cahPlayers.OrderBy(c => (c.Name)).ToList();
+				cahPlayers = cahPlayers.OrderBy(c => c.Name).ToList();
 			
 			for (int i = 0; i < cahPlayers.Count; i++)
 			{

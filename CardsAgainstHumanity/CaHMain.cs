@@ -43,15 +43,26 @@ namespace CardsAgainstHumanity
 
 		void OnLeave(LeaveEventArgs e)
 		{
-			if (TShock.Players[e.Who] == null)
+			TSPlayer ts = TShock.Players[e.Who];
+
+			if (ts == null)
 				return;
-			if (CahGame.Judge == TShock.Players[e.Who])
+
+			CahPlayer cplr = TShock.Players[e.Who].GetCaHPlayer();
+
+			if (cplr == null)
+				return;
+
+			if (CahGame.Judge == ts)
 			{
-				TShock.Players[e.Who].RemoveData("cah");
+				ts.RemoveData("cah");
 				CahGame.SetJudge();
 			}
 			else
-				TShock.Players[e.Who].RemoveData("cah");
+				ts.RemoveData("cah");
+			Utils.CahBroadcast($"{ts.Name} has left the game!");
+			if (Utils.GetCahPlayers().FindAll(c => !c.GetCaHPlayer().Spectating).Count == 0)
+				CahGame.Stop();
 		}
 
 		void Cah(CommandArgs args)
@@ -250,7 +261,7 @@ namespace CardsAgainstHumanity
 			}
 			if (CahGame.Judge == args.Player)
 			{
-				args.Player.SendErrorMessage("You are the judge and cannot give in answer for this round!");
+				args.Player.SendErrorMessage("You are the judge and cannot give an answer for this round!");
 				return;
 			}
 			if (cahPlayer.Answered)
@@ -264,7 +275,7 @@ namespace CardsAgainstHumanity
 
 		public void WinCommand(CommandArgs args)
 		{
-			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != CahGame.Judge && !c.GetCaHPlayer().Spectating).OrderBy(c => (c.Name)).ToList();
+			List<TSPlayer> cahPlayers = Utils.GetCahPlayers().FindAll(c => c != CahGame.Judge && !c.GetCaHPlayer().Spectating).OrderBy(c => c.Name).ToList();
 			if (args.Parameters.Count < 1)
 			{
 				args.Player.SendErrorMessage($"Invalid syntax! Proper syntax: /cah win <1 - {cahPlayers.Count}>");
