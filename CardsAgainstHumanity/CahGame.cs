@@ -74,7 +74,7 @@ namespace CardsAgainstHumanity
 		public void Leave(TSPlayer ts)
 		{
 			Utils.CahBroadcast($"{ts.Name} has left the game!");
-			if (Utils.GetCahPlayers().FindAll(c => !c.GetCaHPlayer().Spectating).Count <= 2)
+			if (Utils.GetCahPlayers().FindAll(c => !c.GetCaHPlayer().Spectating).Count <= 2 && gameState != GameState.NotStarted)
 			{
 				Utils.CahBroadcast("The game has ended due to a lack of players.");
 				Stop();
