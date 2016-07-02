@@ -37,8 +37,22 @@ namespace CardsAgainstHumanity
 			else config = Config.Load();
 			Commands.ChatCommands.Add(new Command("cah.play", Cah, "cah"));
 			ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
+
+			ServerApi.Hooks.NetSendData.Register(this, OnSendData);
 			CahGame = new CahGame(config);
 			timer.Elapsed += Timer_Elapsed;
+		}
+		
+		void OnSendData(SendDataEventArgs e)
+		{
+			if (e.MsgId != PacketTypes.Status)
+				return;
+
+			if (TShock.Players[e.number]?.GetCaHPlayer() == null)
+				return;
+
+			if (e.text.IndexOf("Cards") == -1)
+				e.Handled = true;
 		}
 
 		void OnLeave(LeaveEventArgs e)
@@ -313,7 +327,7 @@ namespace CardsAgainstHumanity
 
 		public CaHMain(Main game) : base(game)
 		{
-			Order = 1;
+			Order = -1;
 		}
 	}
 }
