@@ -215,8 +215,8 @@ namespace CardsAgainstHumanity
 
 		public static void ClearInterfaceAndKick(this TSPlayer ts)
 		{
-			ts.SendData(PacketTypes.Status, string.Empty);
 			ts.RemoveData("cah");
+			ts.SendData(PacketTypes.Status, string.Empty);
 		}
 
 		public static void Spectate(this TSPlayer ts, CahGame cahGame)
